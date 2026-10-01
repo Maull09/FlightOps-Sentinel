@@ -16,9 +16,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - id: image
+        shell: bash
+        run: echo "repository=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/flightops-api" >> "$GITHUB_OUTPUT"
       - uses: azure/setup-helm@v4
       - uses: azure/setup-kubectl@v4
-      - run: helm upgrade --install flightops deploy/helm/flightops --namespace flightops-staging --create-namespace --set image.repository=ghcr.io/${{ github.repository_owner }}/flightops-api --set image.tag=${{ github.event.workflow_run.head_sha }} --set api.smokeFlightId=${{ vars.SMOKE_FLIGHT_ID }}
+      - run: helm upgrade --install flightops deploy/helm/flightops --namespace flightops-staging --create-namespace --set image.repository=${{ steps.image.outputs.repository }} --set image.tag=${{ github.event.workflow_run.head_sha }} --set api.smokeFlightId=${{ vars.SMOKE_FLIGHT_ID }}
       - run: kubectl rollout status deployment/flightops --namespace flightops-staging --timeout=180s
       - run: kubectl get service flightops --namespace flightops-staging
       - run: kubectl run flightops-smoke --namespace flightops-staging --rm -i --restart=Never --image=curlimages/curl:8.11.1 -- curl --fail http://flightops:8000/health/ready
@@ -29,6 +32,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - id: image
+        shell: bash
+        run: echo "repository=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/flightops-api" >> "$GITHUB_OUTPUT"
       - uses: azure/setup-helm@v4
       - uses: azure/setup-kubectl@v4
-      - run: helm upgrade --install flightops deploy/helm/flightops --namespace flightops-production --create-namespace --set image.repository=ghcr.io/${{ github.repository_owner }}/flightops-api --set image.tag=${{ github.event.workflow_run.head_sha }}
+      - run: helm upgrade --install flightops deploy/helm/flightops --namespace flightops-production --create-namespace --set image.repository=${{ steps.image.outputs.repository }} --set image.tag=${{ github.event.workflow_run.head_sha }}

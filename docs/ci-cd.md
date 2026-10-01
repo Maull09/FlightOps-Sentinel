@@ -6,10 +6,10 @@ The `CI` workflow runs formatting, Ruff, mypy, pytest, Compose validation, Helm 
 
 ## Images
 
-Merges to `main` publish API, pipeline, and Airflow images to GHCR. Each image is scanned with the same Trivy action and tagged only with the immutable commit SHA:
+Merges to `main` publish API, pipeline, and Airflow images to GHCR. The workflow normalizes the repository name to lowercase because GHCR image names require it. Each image is scanned with the same Trivy action and tagged only with the immutable commit SHA:
 
 ```text
-ghcr.io/<owner>/flightops-api:<commit-sha>
+ghcr.io/<lowercase-owner>/flightops-api:<commit-sha>
 ```
 
 ## Deployment
