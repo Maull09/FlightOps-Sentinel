@@ -1,0 +1,11 @@
+{
+  "title": "FlightOps API Service",
+  "panels": [
+    {"title": "Request rate", "type": "timeseries", "targets": [{"expr": "sum(rate(flightops_api_requests_total[5m]))"}]},
+    {"title": "Error rate", "type": "timeseries", "targets": [{"expr": "sum(rate(flightops_api_errors_total[5m]))"}]},
+    {"title": "p95 latency", "type": "timeseries", "targets": [{"expr": "histogram_quantile(0.95, sum(rate(flightops_api_request_duration_seconds_bucket[5m])) by (le))"}]},
+    {"title": "Prediction freshness", "type": "stat", "targets": [{"expr": "flightops_prediction_freshness_seconds"}]}
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

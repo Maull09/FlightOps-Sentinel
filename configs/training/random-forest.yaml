@@ -1,0 +1,19 @@
+experiment:
+  name: flight-delay-risk
+  version: random-forest-v1
+  seed: 42
+
+data:
+  feature_version: v2
+  train_fraction: 0.60
+  validation_fraction: 0.20
+
+model:
+  family: random_forest
+  parameters:
+    n_estimators: 300
+    max_depth: null
+
+tuning:
+  enabled: true
+  trials: 40

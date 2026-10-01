@@ -1,5 +1,9 @@
 # Architecture: FlightOps Sentinel
 
+## Current implementation — 2026-10-02
+
+The sections below describe the target architecture. The current training workflow evaluates one YAML-selected family per invocation, compares it against plain logistic regression, saves actual split/comparator lineage, and automatically assigns `champion` to eligible versions after lineage is committed. API and batch scoring resolve the alias once and load that exact registry version. Readiness checks alias resolution; structured request logging and dependency-complete readiness remain future work. Current behavior and remaining evaluation/runtime limitations are documented in the [training pipeline](docs/training-pipeline.md) and [Clean Code review](docs/clean-code-review.md). Apply lineage migration 013 before the next tracked training run.
+
 ## 1. Purpose and Scope
 
 FlightOps Sentinel is a production-oriented ML platform that predicts whether a scheduled flight will depart at least 15 minutes late. The MVP serves one binary-classification use case at a fixed prediction horizon of 24 hours before scheduled departure (T-24h).
@@ -78,7 +82,7 @@ Suggested branch policy:
 
 | Component | Runtime | Responsibility |
 | --- | --- | --- |
-| PostgreSQL | Managed service in production; container locally | Stores operational source data, project-owned derived data, and prediction records. |
+| PostgreSQL | Managed service in production; PostgreSQL 15 container locally | Stores operational source data, project-owned derived data, and prediction records. |
 | Airflow | Kubernetes deployment | Schedules and monitors data quality, feature materialization, training, evaluation, registration, and batch scoring. |
 | Training package | Kubernetes Job launched by Airflow | Extracts versioned training data, trains models, evaluates them, and logs runs to MLflow. |
 | Batch-scoring package | Kubernetes Job launched by Airflow | Scores eligible T-24h flights and persists scores. |
@@ -231,7 +235,7 @@ label = actual_departure > scheduled_departure + 15 minutes
 
 Each feature must be computable using data available at or before `feature_cutoff`. Historical aggregates exclude the target flight and all subsequent flights. This constraint applies equally to offline training, batch scoring, and the FastAPI service.
 
-Allowed initial features include scheduled departure hour/day/month, origin, destination, route, aircraft type, scheduled duration, and cutoff-safe historical delay aggregates. Actual departure, actual arrival, final status, and all information arriving after cutoff are prohibited from model features.
+Allowed initial features include scheduled departure hour/day/month, origin, destination, route, aircraft type, scheduled duration, and cutoff-safe historical delay aggregates. Current historical aggregates cover route, origin, aircraft, destination, and route × local departure hour. Actual departure, actual arrival, final status, and all information arriving after cutoff are prohibited from model features.
 
 All timestamps must be timezone-aware. Database and Python time zones are explicitly configured and tested.
 
@@ -256,7 +260,7 @@ Each DAG is idempotent for an execution date. Backfills use an explicit date ran
 5. Promotion to `Production` is an explicit, reviewable action; the serving service deploys a specific immutable model version.
 6. Batch and online predictions record the model version used.
 
-The first baseline should be an interpretable classifier. A more complex model is considered only if it provides a measured benefit on the future holdout data.
+The candidate workflow compares logistic regression, XGBoost, and LightGBM. Optuna tuning uses rolling splits within the training window; validation PR-AUC selects the finalist, sigmoid calibration uses validation data, and the future holdout is evaluated once. A complex model is considered only if it provides a measured benefit on that holdout.
 
 ## 12. FastAPI Serving Design
 

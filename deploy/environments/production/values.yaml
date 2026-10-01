@@ -1,0 +1,12 @@
+image:
+  repository: ghcr.io/replace-owner/flightops-api
+  tag: replace-with-immutable-sha
+  pullPolicy: IfNotPresent
+
+pipeline:
+  image:
+    repository: ghcr.io/replace-owner/flightops-pipeline
+    tag: replace-with-immutable-sha
+
+ingress:
+  host: flightops.example.internal

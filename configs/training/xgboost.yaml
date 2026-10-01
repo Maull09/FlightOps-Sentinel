@@ -1,0 +1,20 @@
+experiment:
+  name: flight-delay-risk
+  version: xgboost-v2
+  seed: 42
+
+data:
+  feature_version: v2
+  train_fraction: 0.60
+  validation_fraction: 0.20
+
+model:
+  family: xgboost
+  parameters:
+    objective: binary:logistic
+    eval_metric: logloss
+    tree_method: hist
+
+tuning:
+  enabled: true
+  trials: 40

@@ -1,0 +1,32 @@
+{{- if .Values.pipeline.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "flightops.fullname" . }}-pipeline
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: {{ include "flightops.serviceAccountName" . }}
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: pipeline
+          image: "{{ .Values.pipeline.image.repository }}:{{ .Values.pipeline.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "flightops.fullname" . }}-config
+            - secretRef:
+                name: {{ .Values.pipeline.existingSecret }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+{{- end }}

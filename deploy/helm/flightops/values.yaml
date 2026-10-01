@@ -1,0 +1,39 @@
+image:
+  repository: flightops/api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  port: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: flightops.local
+
+api:
+  existingSecret: flightops-runtime
+
+serviceAccount:
+  create: true
+  name: ""
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+pipeline:
+  image:
+    repository: flightops/pipeline
+    tag: latest
+  existingSecret: flightops-runtime
+  enabled: true
+
+observability:
+  enabled: true

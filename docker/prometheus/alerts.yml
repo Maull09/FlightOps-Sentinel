@@ -1,0 +1,24 @@
+groups:
+  - name: flightops
+    rules:
+      - alert: FlightOpsApiUnavailable
+        expr: up{job="flightops-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: FlightOps API scrape target is unavailable.
+      - alert: FlightOpsDataQualityFailure
+        expr: flightops_data_quality_failed_checks > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: FlightOps data-contract check is failing.
+      - alert: FlightOpsPredictionsStale
+        expr: flightops_prediction_freshness_seconds > 172800
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: FlightOps predictions are more than 48 hours old.

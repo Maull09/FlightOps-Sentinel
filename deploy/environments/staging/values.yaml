@@ -1,0 +1,12 @@
+image:
+  repository: flightops/api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+pipeline:
+  image:
+    repository: flightops/pipeline
+    tag: latest
+
+ingress:
+  host: flightops.staging.local

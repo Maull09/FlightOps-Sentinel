@@ -1,0 +1,18 @@
+experiment:
+  name: flight-delay-risk
+  version: lightgbm-v2
+  seed: 42
+
+data:
+  feature_version: v2
+  train_fraction: 0.60
+  validation_fraction: 0.20
+
+model:
+  family: lightgbm
+  parameters:
+    verbosity: -1
+
+tuning:
+  enabled: true
+  trials: 40

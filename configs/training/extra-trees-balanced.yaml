@@ -1,0 +1,18 @@
+experiment:
+  name: flight-delay-risk
+  version: extra-trees-balanced-v2
+  seed: 42
+
+data:
+  feature_version: v2
+  train_fraction: 0.60
+  validation_fraction: 0.20
+
+model:
+  family: extra_trees
+  parameters:
+    class_weight: balanced
+
+tuning:
+  enabled: true
+  trials: 15
