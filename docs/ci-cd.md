@@ -2,11 +2,11 @@
 
 ## Pull Requests
 
-The `CI` workflow runs formatting, Ruff, mypy, pytest, Compose validation, Helm lint, and Helm rendering. Configure these jobs as required checks on `main`.
+The `CI` workflow runs formatting, Ruff, mypy, pytest, Compose validation, Helm lint, Helm rendering, and a filesystem vulnerability scan. The scan uses `aquasecurity/trivy-action@v0.36.0`, the current versioned tag documented by the action project. Configure these jobs as required checks on `main`.
 
 ## Images
 
-Merges to `main` publish API, pipeline, and Airflow images to GHCR. Each is tagged only with the immutable commit SHA:
+Merges to `main` publish API, pipeline, and Airflow images to GHCR. Each image is scanned with the same Trivy action and tagged only with the immutable commit SHA:
 
 ```text
 ghcr.io/<owner>/flightops-api:<commit-sha>

@@ -2,6 +2,11 @@
 
 ## Clean Code Review — 2026-10-02
 
+## CI and Documentation Follow-up — 2026-10-02
+
+- [x] Replace the invalid Trivy action tag with the official `v0.36.0` tag in CI and image publishing workflows.
+- [x] Rewrite README as the project overview and local running guide.
+
 **Follow-up code review:** failure paths for unavailable Git/repository metadata and invalid model artifacts are covered. Training records `git_revision=unavailable` if Git cannot provide a revision; the model loader translates truncated or invalid serialized artifacts into the documented model-unavailable error.
 
 - [x] Make code-revision provenance explicit for environments without the Git executable/repository, including pipeline images.

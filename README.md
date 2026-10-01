@@ -1,79 +1,180 @@
 # FlightOps Sentinel
 
-FlightOps Sentinel is a production-oriented machine-learning platform that predicts whether a scheduled flight will depart at least 15 minutes late.
+FlightOps Sentinel is an end-to-end machine-learning system for flight operations. It predicts the probability that a scheduled flight will depart **more than 15 minutes late**, giving operations teams a T-24h signal for where to focus attention.
 
-The MVP has one model and one prediction horizon: departure-delay risk at T-24h, meaning 24 hours before scheduled departure.
+The project is deliberately scoped to one decision: classify departure-delay risk for one scheduled flight, 24 hours before its scheduled departure. It is a portfolio-grade local platform and does not claim to be a production deployment.
 
-## Documentation
+## What the system does
 
-- [Product requirements](prd.md)
-- [Architecture](architecture.md)
-- [Implementation roadmap](todo.md)
-- [Repository instructions](AGENTS.md)
-- [Clean Code review and maintenance checks](docs/clean-code-review.md)
+1. Restores the PostgreSQL Airline Demo Database as the operational source.
+2. Creates project-owned staging, analytics, and ML tables; it does not modify the source `bookings` schema.
+3. Builds a leakage-safe feature mart using information available at the T-24h cutoff.
+4. Trains and evaluates a binary classifier with chronological train, validation, and future-test windows.
+5. Records datasets, parameters, metrics, models, and promotion decisions in MLflow.
+6. Scores eligible flights in batch or through a FastAPI endpoint using the approved MLflow `champion` model.
+7. Exposes health checks and Prometheus metrics for local operations.
 
-## Technology Direction
-
-- PostgreSQL for source and derived relational data
-- Airflow for scheduled data and ML workflows
-- MLflow for experiment tracking and model registry
-- FastAPI for prediction serving
-- Docker and Kubernetes for runtime environments
-- Prometheus, Grafana, and Alertmanager for observability
-- GitHub Actions for CI/CD
-
-## Local Development
-
-Python 3.12.10 is the pinned project version, recorded in `.python-version`. If using pyenv, install it once and let pyenv select it automatically inside this repository:
-
-```powershell
-pyenv install 3.12.10
+```mermaid
+flowchart LR
+    Source[(PostgreSQL\nbookings schema)] --> Staging[staging.flight_records]
+    Staging --> Features[ml.flight_delay_features\nT-24h safe]
+    Features --> Training[Chronological training\nand evaluation]
+    Training --> Registry[MLflow registry\nchampion alias]
+    Features --> Batch[Airflow batch scoring]
+    Registry --> Batch
+    Features --> API[FastAPI prediction API]
+    Registry --> API
+    API --> Metrics[Prometheus / Grafana]
 ```
 
-After Python is available, create and activate a virtual environment, then install the development dependencies:
+## Project status
+
+The repository contains the local database workflow, feature mart, training code, MLflow tracking, batch scoring, API, Airflow DAGs, Docker images, observability configuration, GitHub Actions, and Helm templates.
+
+The model is promoted only when it beats the configured baseline on future-test ROC-AUC and PR-AUC. If no candidate qualifies, there is no `champion` model and prediction readiness correctly returns `503` rather than using an unapproved fallback.
+
+## Prerequisites
+
+- Python 3.12.10
+- Docker Desktop
+- At least 7 GB free disk space for the local source database and service volumes
+- PowerShell on Windows
+
+The source dataset is downloaded separately. It is about 558 MB compressed and remains Git-ignored under `data/`.
+
+## Quick start
+
+Run these commands from the repository root.
+
+### 1. Configure Python and local secrets
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-```
 
-Copy the example configuration before running any service:
-
-```powershell
 Copy-Item .env.example .env
 ```
 
-The values in `.env.example` are local placeholders only. Do not commit `.env` or credentials.
+Replace every `change-me` and `replace-with-*` value in `.env`. Never commit `.env`; it is ignored by Git.
 
-For the local PostgreSQL source database and MLflow infrastructure, follow the [local source database runbook](docs/runbooks/local-source-database.md).
-For Docker services, Airflow, smoke testing, and troubleshooting, follow the [local platform runbook](docs/runbooks/local-platform.md).
-Prometheus, Grafana, Alertmanager, metrics, alerts, and operational responses are documented in the [observability runbook](docs/runbooks/observability.md).
-GitHub Actions checks, immutable GHCR images, staging deployment, and the production approval gate are documented in [CI/CD](docs/ci-cd.md).
-The local Kubernetes deployment, image loading, rollout, and rollback workflow is documented in the [Minikube runbook](docs/runbooks/minikube.md).
-The restored source snapshot is described in the [source data inventory](docs/source-data-inventory.md).
-The staging and label contract is described in the [flight-delay data contract](docs/data-contract.md).
-Derived tables and fields are listed in the [data dictionary](docs/data-dictionary.md).
-The T-24h feature availability rules are documented in the [feature contract](docs/feature-contract.md).
-The completed Phase 3 validation is recorded in the [leakage audit](docs/leakage-audit.md).
-The baseline model and chronological evaluation design are documented in [baseline evaluation](docs/baseline-evaluation.md).
-The actual baseline comparison and promotion decision are recorded in [baseline results](docs/baseline-results.md).
-MLflow tracking, registry, and promotion rules are documented in [MLflow lifecycle](docs/mlflow-lifecycle.md).
-The prediction endpoint behavior is documented in the [API contract](docs/api-contract.md).
-The staged candidate training, Optuna tuning, calibration, and MLflow workflow is documented in the [training pipeline](docs/training-pipeline.md).
-
-## Quality Checks
+### 2. Start infrastructure and restore the source database
 
 ```powershell
-ruff check .
-ruff format --check .
-mypy src
-pytest
+docker compose up -d postgres minio minio-init mlflow
+.\scripts\download-demo-database.ps1
+.\scripts\restore-demo-database.ps1
 ```
 
-## Current Status
+The restore script stops if a `demo` database already exists, avoiding an accidental overwrite of local data.
 
-Training records `git_revision=unavailable` when Git or repository metadata is unavailable. A truncated or invalid approved-model artifact produces the documented model-unavailable response instead of an internal server error. See [the Clean Code review](docs/clean-code-review.md) for the remaining design and integration limits.
+### 3. Create derived tables and features
 
-Local data, artifacts, virtual environments, caches, credentials, and downloaded Kubernetes tools in `.tools/` are excluded from Git. Keep deployment configuration in source and provide runtime credentials through `.env` or the deployment secret mechanism.
+```powershell
+.\scripts\apply-migrations.ps1
+.\scripts\refresh-staging.ps1
+.\scripts\refresh-features.ps1
+.\scripts\run-data-contracts.ps1
+```
+
+This creates and refreshes only the project-owned `staging`, `analytics`, and `ml` schemas.
+
+### 4. Train a candidate
+
+```powershell
+.\.venv\Scripts\python.exe scripts\validate-training-data.py configs\training\logistic.yaml
+.\.venv\Scripts\python.exe scripts\train-candidates.py configs\training\logistic.yaml
+```
+
+Available model configurations are `logistic`, `xgboost`, `lightgbm`, `random-forest`, and `extra-trees-balanced`. Each run logs to MLflow. An eligible run is registered and assigned the `champion` alias only after its PostgreSQL lineage record is saved.
+
+### 5. Start the API and verify it
+
+```powershell
+docker compose up -d --build api
+Invoke-WebRequest http://localhost:8000/health/live
+```
+
+The API requires a `champion` model. Once one exists, run the end-to-end check:
+
+```powershell
+.\scripts\smoke-test.ps1
+```
+
+The prediction endpoint is:
+
+```text
+POST /v1/predictions/flight-delay?flight_id={flight_id}
+```
+
+It returns the delay probability, risk level, timestamp, model name, and exact model version used for the prediction.
+
+## Local services
+
+| Service | Local address | Purpose |
+| --- | --- | --- |
+| PostgreSQL | `localhost:15432` | Source and project-owned relational data |
+| MLflow | `http://localhost:5000` | Experiment tracking and model registry |
+| FastAPI | `http://localhost:8000` | On-demand prediction and `/metrics` |
+| Airflow | `http://localhost:8080` | Validation, feature, training, and batch DAGs |
+| MinIO console | `http://localhost:9001` | Local MLflow artifact store |
+| Grafana | `http://localhost:3300` | API observability dashboard |
+
+Start Airflow after the source database, migrations, and feature mart are ready:
+
+```powershell
+docker compose up -d --build airflow-init airflow-webserver airflow-scheduler
+```
+
+Use `docker compose down` to stop services while preserving volumes. Do not run `docker compose down -v` unless you intend to delete local data.
+
+## Quality checks
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m mypy src
+.\.venv\Scripts\python.exe -m pytest
+```
+
+GitHub Actions runs the same Python checks, Docker Compose/Helm validation, and Trivy scans. Merges to `main` build and scan immutable API, pipeline, and Airflow images for GHCR.
+
+## Repository layout
+
+```text
+src/flightops/       Application, training, scoring, and pipeline code
+sql/                 Migrations, feature SQL, and data-contract checks
+airflow/dags/        Thin orchestration DAGs
+configs/training/    Versioned model-family configurations
+scripts/             Local setup, refresh, training, and smoke-test commands
+docker/              Service images and observability configuration
+deploy/              Helm chart and environment values
+docs/                Contracts, runbooks, architecture, and decisions
+tests/               Unit and regression tests
+```
+
+## Design rules
+
+- Timestamps are timezone-aware.
+- Training uses chronological splits, never random splits.
+- Actual timestamps and final flight status never enter model features.
+- The operational `bookings` schema remains read-only.
+- API and batch scoring resolve the MLflow alias once and record the exact model version loaded.
+
+## Documentation
+
+| Topic | Document |
+| --- | --- |
+| Product scope and acceptance criteria | [prd.md](prd.md) |
+| System design | [architecture.md](architecture.md) |
+| Source and feature contracts | [data contract](docs/data-contract.md) · [feature contract](docs/feature-contract.md) |
+| Training, evaluation, and model lifecycle | [training pipeline](docs/training-pipeline.md) · [MLflow lifecycle](docs/mlflow-lifecycle.md) |
+| API behavior | [API contract](docs/api-contract.md) |
+| Local setup and operations | [source database](docs/runbooks/local-source-database.md) · [local platform](docs/runbooks/local-platform.md) · [observability](docs/runbooks/observability.md) |
+| CI/CD and Kubernetes | [CI/CD](docs/ci-cd.md) · [Minikube](docs/runbooks/minikube.md) |
+| Known limitations and review findings | [production readiness](docs/production-readiness.md) · [Clean Code review](docs/clean-code-review.md) |
+
+## Important limitations
+
+The demo source is a historical snapshot. It does not include real-time weather, air-traffic control, crew, maintenance, or aircraft-rotation information. Schedule-congestion features assume schedules were published by the feature cutoff. The validation window is currently shared by tuning, calibration, and threshold selection; do not compare many candidate families against the same future test set without reserving a new holdout.
