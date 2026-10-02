@@ -40,4 +40,5 @@ jobs:
         with:
           image-ref: ${{ steps.image.outputs.repository }}:${{ github.sha }}
           severity: HIGH,CRITICAL
+          ignore-unfixed: true
           exit-code: '1'

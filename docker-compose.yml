@@ -54,7 +54,7 @@ services:
     build:
       context: .
       dockerfile: docker/mlflow/Dockerfile
-    image: flightops/mlflow:2.22.0
+    image: flightops/mlflow:3.16.1
     command: >
       mlflow server
       --host 0.0.0.0

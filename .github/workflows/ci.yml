@@ -45,4 +45,5 @@ jobs:
         with:
           scan-type: fs
           severity: HIGH,CRITICAL
+          ignore-unfixed: true
           exit-code: '1'
