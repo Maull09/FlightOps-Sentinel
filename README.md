@@ -124,7 +124,7 @@ It returns the delay probability, risk level, timestamp, model name, and exact m
 Start Airflow after the source database, migrations, and feature mart are ready:
 
 ```powershell
-docker compose up -d --build airflow-init airflow-webserver airflow-scheduler
+docker compose up -d --build airflow-init airflow-api-server airflow-scheduler airflow-dag-processor
 ```
 
 Use `docker compose down` to stop services while preserving volumes. Do not run `docker compose down -v` unless you intend to delete local data.

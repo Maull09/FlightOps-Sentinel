@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from airflow.operators.python import PythonOperator, get_current_context
+from airflow.providers.standard.operators.python import PythonOperator
+from airflow.sdk import DAG, get_current_context
 
-from airflow import DAG
 from flightops.pipeline import materialize_features, monitor_model_outcomes, validate_contracts
 from flightops.scoring.batch import score_flights
 from flightops.training.config import load_config

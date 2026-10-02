@@ -6,7 +6,7 @@ Copy `.env.example` to `.env` and supply local secrets. Start the platform after
 
 ```powershell
 docker compose up -d --build postgres minio minio-init mlflow api
-docker compose up -d --build airflow-init airflow-webserver airflow-scheduler
+docker compose up -d --build airflow-init airflow-api-server airflow-scheduler airflow-dag-processor
 docker compose ps
 ```
 
@@ -15,6 +15,8 @@ The `api` container reads `flight-delay-risk@champion` from MLflow. It remains n
 ## Run Orchestration and Batch Scoring
 
 Open Airflow at `http://localhost:8080` and sign in with `AIRFLOW_ADMIN_USERNAME` and `AIRFLOW_ADMIN_PASSWORD` from `.env`, then trigger `validate_source_data`, `materialize_features`, and `batch_score_flights` as appropriate. The batch DAG uses Airflow's data interval and writes predictions idempotently.
+
+The local stack uses Airflow 3.3. Back up its PostgreSQL metadata volume before upgrading an existing local stack; `airflow-init` applies the metadata migration when it starts.
 
 For a one-off training job, use the pipeline image:
 
