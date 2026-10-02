@@ -3,6 +3,7 @@ FROM apache/airflow:slim-3.3.1-python3.12
 USER root
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends libexpat1 libgomp1 libpcre2-8-0 libssh2-1 \
+    && rm -f /home/airflow/.local/bin/uv /home/airflow/.local/bin/uvx /usr/bin/docker \
     && rm -rf /var/lib/apt/lists/*
 COPY --chown=airflow:root pyproject.toml README.md /opt/flightops/
 COPY --chown=airflow:root configs /opt/flightops/configs
