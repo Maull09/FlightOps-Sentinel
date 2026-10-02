@@ -8,7 +8,7 @@
 - [x] Rewrite README as the project overview and local running guide.
 - [x] Normalize GHCR image repository names to lowercase in publishing and deployment workflows.
 - [x] Upgrade MLflow to 3.16, update vulnerable PCRE2 packages in published images, and ignore only Trivy findings without an upstream fix.
-- [x] Upgrade the Airflow image to 3.3.1 and adopt its API server, DAG processor, configuration, and stable DAG imports.
+- [x] Upgrade the Airflow image to the slim 3.3.1 image, install only its required providers and patched dependencies, and adopt its API server, DAG processor, configuration, and stable DAG imports.
 
 **Follow-up code review:** failure paths for unavailable Git/repository metadata and invalid model artifacts are covered. Training records `git_revision=unavailable` if Git cannot provide a revision; the model loader translates truncated or invalid serialized artifacts into the documented model-unavailable error.
 

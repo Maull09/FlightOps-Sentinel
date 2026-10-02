@@ -16,7 +16,7 @@ The `api` container reads `flight-delay-risk@champion` from MLflow. It remains n
 
 Open Airflow at `http://localhost:8080` and sign in with `AIRFLOW_ADMIN_USERNAME` and `AIRFLOW_ADMIN_PASSWORD` from `.env`, then trigger `validate_source_data`, `materialize_features`, and `batch_score_flights` as appropriate. The batch DAG uses Airflow's data interval and writes predictions idempotently.
 
-The local stack uses Airflow 3.3. Back up its PostgreSQL metadata volume before upgrading an existing local stack; `airflow-init` applies the metadata migration when it starts.
+The local stack uses Airflow 3.3 with the official slim image, plus only the Standard and FAB providers required by its DAGs and local UI. Back up its PostgreSQL metadata volume before upgrading an existing local stack; `airflow-init` applies the metadata migration when it starts.
 
 For a one-off training job, use the pipeline image:
 
