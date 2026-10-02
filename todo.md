@@ -7,7 +7,7 @@
 - [x] Replace the invalid Trivy action tag with the official `v0.36.0` tag in CI and image publishing workflows.
 - [x] Rewrite README as the project overview and local running guide.
 - [x] Normalize GHCR image repository names to lowercase in publishing and deployment workflows.
-- [x] Upgrade MLflow to 3.16, update image system packages, and ignore only Trivy findings without an upstream fix.
+- [x] Upgrade MLflow to 3.16, update vulnerable PCRE2 packages in published images, and ignore only Trivy findings without an upstream fix.
 
 **Follow-up code review:** failure paths for unavailable Git/repository metadata and invalid model artifacts are covered. Training records `git_revision=unavailable` if Git cannot provide a revision; the model loader translates truncated or invalid serialized artifacts into the documented model-unavailable error.
 

@@ -2,8 +2,7 @@ FROM apache/airflow:2.10.5-python3.12
 
 USER root
 RUN apt-get update \
-    && apt-get upgrade --yes \
-    && apt-get install --yes --no-install-recommends libgomp1 \
+    && apt-get install --yes --no-install-recommends libgomp1 libpcre2-8-0 \
     && rm -rf /var/lib/apt/lists/*
 COPY --chown=airflow:root pyproject.toml README.md /opt/flightops/
 COPY --chown=airflow:root configs /opt/flightops/configs
